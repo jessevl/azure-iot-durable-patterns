@@ -1,0 +1,22 @@
+[
+    {
+        "name":"Zone1",
+        "polygons":
+        [
+            { "latitude": 51.932775, "longitude": 4.370744 },
+            { "latitude": 51.940183, "longitude": 4.438035 },
+            { "latitude": 51.900163, "longitude": 4.453828 },
+            { "latitude": 51.897833, "longitude": 4.361131 }
+        ]
+    },
+    {
+        "name":"Zone2",
+        "polygons":
+        [
+            { "latitude": 51.5, "longitude": 7.4 },
+            { "latitude": 51.555, "longitude": 7.4 },
+            { "latitude": 51.555, "longitude": 7.625 },
+            { "latitude": 51.5125, "longitude": 7.625 }
+        ]
+    }
+]

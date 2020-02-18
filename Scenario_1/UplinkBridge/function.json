@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {
+      "name": "msg",
+      "type": "activityTrigger",
+      "direction": "in"
+    }
+  ]
+}

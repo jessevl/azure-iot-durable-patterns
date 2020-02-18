@@ -1,0 +1,17 @@
+{
+  "bindings": [
+    {
+      "name": "msg",
+      "type": "activityTrigger",
+      "direction": "in"
+    },
+    {
+      "name": "zonestatus",
+      "type": "table",
+      "tableName":"zones",
+      "partitionKey": "%zoneStatusPartition%",
+      "connection": "StorageConnection",
+      "direction": "in"
+    }
+  ]
+}

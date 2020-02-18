@@ -1,0 +1,16 @@
+{
+  "bindings": [
+    {
+      "name": "msg",
+      "type": "activityTrigger",
+      "direction": "in"
+    },
+    {
+      "name": "zonedefinitions",
+      "type": "blob",
+      "path": "%zoneDefinitionPath%",
+      "connection": "StorageConnection",
+      "direction": "in"
+    }
+  ]
+}

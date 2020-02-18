@@ -1,0 +1,18 @@
+{
+    "device": {
+      "deviceId": "testDevice1"
+    },
+    "measurements": {
+      "location": {
+        "lat": 51.9179,
+        "lon": 4.40025
+      },
+      "accuracy": "1",
+      "altitude": "1",
+      "movement": "0",
+      "tilt": "0",
+      "temperature": 20,
+      "your-custom-measurement": "string"
+    },
+    "properties": {}
+  }
