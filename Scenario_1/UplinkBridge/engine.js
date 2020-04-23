@@ -6,15 +6,13 @@
 const crypto = require('crypto');
 const Device = require('azure-iot-device');
 const MQTT = require('azure-iot-device-mqtt').Mqtt;
-const HTTP = require('azure-iot-device-http').Http;
+const iothub = require('azure-iothub');
 var ProvisioningTransport = require('azure-iot-provisioning-device-mqtt').Mqtt;
 var SymmetricKeySecurityClient = require('azure-iot-security-symmetric-key').SymmetricKeySecurityClient;
 var ProvisioningDeviceClient = require('azure-iot-provisioning-device').ProvisioningDeviceClient;
 
 const StatusError = require('./error').StatusError;
-
 const registrationHost = 'global.azure-devices-provisioning.net';
-
 const deviceCache = {};
 
 /**
@@ -23,10 +21,11 @@ const deviceCache = {};
  * @param {{ idScope: string, sasToken: string, registrationHost: string }} parameters
  * @param {{ deviceId: string }} device 
  * @param {{ [field: string]: number }} measurements 
- * @param {{ [field: string]: Object }} properties 
+ * @param {{ [field: string]: Object }} reportedProperties 
+ * @param {{ [field: string]: Object }} desiredProperties 
  * @param { String } timestamp 
  */
-module.exports = async function (context, parameters, device, measurements, properties, timestamp) {
+module.exports = async function (context, parameters, device, measurements, reportedProperties, desiredProperties, timestamp) {
     if (device) {
         if (!device.deviceId || !/^[a-zA-Z0-9\-_]+$/.test(device.deviceId)) {
             throw new StatusError('Invalid format: deviceId must be alphanumeric, lowercase, and may contain hyphens.', 400);
@@ -46,38 +45,96 @@ module.exports = async function (context, parameters, device, measurements, prop
     }
 
     try {
-        var TRANSPORT_TYPE = "";
-        var client;
-        if (properties) {
-            client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), MQTT);
-            TRANSPORT_TYPE = "MQTT";
-            context.log("received connection string over MQTT");
-        } else {
-            client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), HTTP);
-            TRANSPORT_TYPE = "HTTP";
-            context.log("received connection string over HTTP");
-        }
-    
+
+        // Use MQTT transport by default.
+        var TRANSPORT_TYPE = "MQTT";
+
+        // Get device connection string for MQTT.
+        var client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), MQTT);
+
+        // Create message object for IoT Hub.    
         const message = new Device.Message(JSON.stringify(measurements));
 
+        // Include custom timestamp if there is one (IoT Hub will use this).
         if (timestamp) {
             message.properties.add('iothub-creation-time-utc', timestamp);
         }
 
+        // Create IoT Hub client.
         await client.open();
+
+        context.log('[%s] Get twin', TRANSPORT_TYPE,device.deviceId);
+        const twin = await client.getTwin();
+        context.log('[%s] Obtained twin for device ', TRANSPORT_TYPE,device.deviceId);
 
         if(measurements) {
             context.log('[%s] Sending telemetry for device ', TRANSPORT_TYPE, device.deviceId);
             await client.sendEvent(message);
             context.log('[%s] Telemetry sent for ', TRANSPORT_TYPE,device.deviceId);
-        }        
+        }
         
-        if (properties) {
-            context.log('[%s] Get twin', TRANSPORT_TYPE,device.deviceId);
-            var twin = await client.getTwin();
-            context.log('[%s] Obtained twin for device ', TRANSPORT_TYPE,device.deviceId);
-            await twin.properties.reported.update(properties);
-            context.log('[%s] Updated twin for device ', TRANSPORT_TYPE,device.deviceId);
+        if (reportedProperties) {
+            var needsUpdate = false;
+
+            for(var key in reportedProperties){
+                if (reportedProperties[key] != twin.properties.reported[key]){
+                    needsUpdate = true;
+                }
+            }
+
+            if (needsUpdate) {
+                await twin.properties.reported.update(reportedProperties);
+                context.log('[%s] Updated twin (reported) for device ', TRANSPORT_TYPE,device.deviceId);
+            } else {
+                context.log('[%s] Twin (reported) is already up to date ', TRANSPORT_TYPE,device.deviceId);
+            }
+        }
+
+        if (desiredProperties) {
+            var needsUpdate = false;
+
+            for(var key in desiredProperties){
+                if (desiredProperties[key] != twin.properties.desired[key]){
+                    needsUpdate = true;
+                }
+            }
+            
+            for(var key in desiredProperties){
+                if (desiredProperties[key] != reportedProperties[key]){
+                    needsUpdate = true;
+                    console.log("A desired property was not yet reported back, we'll re-set the desired twin (to trigger a new change event)");
+                }
+            }
+
+            if (needsUpdate) {
+                context.log('[%s] Twin (desired) needs update ', "clientSDK",device.deviceId);
+
+                var registry = iothub.Registry.fromConnectionString(parameters.clientConnectionString);
+
+                context.log('[%s] Get twin (desired)', "clientSDK",device.deviceId);
+                registry.getTwin(device.deviceId, function(err, twin){
+                    if (err) {
+                        context.log(err.constructor.name + ': ' + err.message);
+                    } else {
+                        var patch = {
+                            properties: {
+                                desired: desiredProperties
+                            }
+                        };
+                        context.log('[%s] Obtained twin (desired) for device ', "clientSDK",device.deviceId);
+
+                        twin.update(patch, function(err) {
+                            if (err) {
+                            context.log('Could not update twin (desired): ' + err.constructor.name + ': ' + err.message);
+                            } else {
+                            context.log('[%s] Updated twin (desired) for device ', "clientSDK",device.deviceId);
+                            }
+                        });
+                    }
+                });
+            } else {
+                context.log('[%s] Twin (desired) already up to date ', "MQTT",device.deviceId);
+            }
         }
 
         context.log('[%s] Closing client for ', TRANSPORT_TYPE,device.deviceId);

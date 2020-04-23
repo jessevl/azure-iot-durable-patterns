@@ -3,13 +3,12 @@
 
     if (msg) {
         const zonestatus = context.bindings.zonestatus;
+        msg.desiredProperties["distress"];
 
+        // TODO: implement highest distress level picking
         msg.measurements.zones.forEach(zone => {
             var status = zonestatus.find(o => o.RowKey === zone);
-
-            if (status.Distress == true){
-                msg.measurements["distress"] = true;
-            }
+            msg.desiredProperties["distress"] = status.Distress;
         })
 
         return msg;

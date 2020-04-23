@@ -1,20 +1,11 @@
 {
   "bindings": [
     {
-      "authLevel": "function",
-      "name": "req",
-      "type": "httpTrigger",
+      "name": "ehmsg",
+      "type": "eventHubTrigger",
       "direction": "in",
-      "route": "orchestrators/{functionName}",
-      "methods": [
-        "post",
-        "get"
-      ]
-    },
-    {
-      "name": "$return",
-      "type": "http",
-      "direction": "out"
+      "eventHubName": "twtgingest",
+      "connection": "EventHubIngestConnectionstring"
     },
     {
       "name": "starter",
