@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {
+      "type": "eventHubTrigger",
+      "name": "eventHubMessages",
+      "direction": "in",
+      "eventHubName": "twinchanges",
+      "connection": "SmartBadgePernisEH_iothubroutes_SmartBadgePernisIoTHub_EVENTHUB",
+      "cardinality": "many",
+      "consumerGroup": "devicetriplet"
+    }
+  ]
+}
