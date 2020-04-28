@@ -5,7 +5,7 @@
       "name": "eventHubMessages",
       "direction": "in",
       "eventHubName": "twinchanges",
-      "connection": "SmartBadgePernisEH_iothubroutes_SmartBadgePernisIoTHub_EVENTHUB",
+      "connection": "EventHubIngestConnectionstring",
       "cardinality": "many",
       "consumerGroup": "twtgdownlink"
     }

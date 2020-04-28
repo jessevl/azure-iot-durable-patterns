@@ -16,9 +16,9 @@ module.exports = async function (context, eventHubMessages) {
         )
 
         const options = {
-        hostname: 'add a nice endpoint here',
+        hostname: process.env["downlinkHost"],
         port: 443,
-        path: '/add path here',
+        path: process.env["downlinkPath"],
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -27,15 +27,11 @@ module.exports = async function (context, eventHubMessages) {
         }
 
         const req = https.request(options, res => {
-        console.log(`statusCode: ${res.statusCode}`)
-
-        res.on('data', d => {
-            process.stdout.write(d)
-        })
+            console.log(`statusCode: ${res.statusCode}`)
         })
 
         req.on('error', error => {
-        console.error(error)
+            console.error(error)
         })
 
         req.write(data)

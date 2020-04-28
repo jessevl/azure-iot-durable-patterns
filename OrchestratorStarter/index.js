@@ -9,7 +9,7 @@ module.exports = async function (context, ehmsg) {
                         deviceName: ehmsg.message.deviceName
                     },
                     measurements:{
-                        location: ehmsg.message.object.location.latitude != 0 ? {lat: ehmsg.message.object.location.latitude,lon: ehmsg.message.object.location.longitude} : {outdated: true},
+                        location: ehmsg.message.object.location.latitude != 0 ? {lat: ehmsg.message.object.location.latitude,lon: ehmsg.message.object.location.longitude, outdated: false} : {outdated: true},
                         battery: ehmsg.message.object.battery,
                         mandown: ehmsg.message.object.man_down,
                         movement:ehmsg.message.object.movement,

@@ -1,14 +1,14 @@
 module.exports = async function (context, eventHubMessages) {    
 
     // Define and create Cosmos DB Client
-    const endpoint = "<ENDPOINT>";
-    const key = "<KEY>";
+    const endpoint = process.env["tripletDBendpoint"];
+    const key = process.env["tripletDBkey"];
      
     const CosmosClient = require('@azure/cosmos').CosmosClient;
     const client = new CosmosClient({ endpoint, key });
     
-    const databaseId = "insert here";
-    const containerId = "insert here";
+    const databaseId = process.env["tripletDBname"];
+    const containerId = process.env["tripletDBcontainer"];
     const partitionKey = { kind: "Hash", paths: ["/deviceid"] };
    
     const { database } = await client.databases.createIfNotExists({ id: databaseId });
