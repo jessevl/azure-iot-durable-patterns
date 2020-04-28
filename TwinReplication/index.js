@@ -24,15 +24,9 @@ module.exports = async function (context, eventHubMessages) {
         
         // Update event message with deviceid
         var updatedDeviceDetails = eventHubMessages[i];        
-        updatedDeviceDetails["id"] = deviceid;      
+        updatedDeviceDetails["id"] = deviceid;
+        updatedDeviceDetails["deviceid"] = deviceid;          
 
-        // Define Cosmos Query
-        const querySpec = {            
-            query: `SELECT * FROM c WHERE c.deviceid = '${deviceid}'`        
-        };  
-               
-        // Query items and replace/create
-        const { resources: items } = await container.items.query(querySpec).fetchAll();        
         await container.items.upsert(updatedDeviceDetails, partitionKey);
 
     }
