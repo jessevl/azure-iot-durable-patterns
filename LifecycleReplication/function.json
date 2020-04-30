@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {
+      "type": "eventHubTrigger",
+      "name": "myEventHubMessage",
+      "direction": "in",
+      "eventHubName": "lifecyclechanges",
+      "connection": "LifeCycleEventHubIngestConnectionstring",
+      "cardinality": "many",
+      "consumerGroup": "devicetriplet"
+    }
+  ]
+}
