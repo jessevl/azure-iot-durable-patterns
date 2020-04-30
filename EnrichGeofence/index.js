@@ -1,5 +1,7 @@
 ﻿module.exports = async function (context) {
-      
+    
+    context.log("Enriching msg with geofence");
+    
     const geolib = require('geolib');
     let msg = context.bindings.msg;
 

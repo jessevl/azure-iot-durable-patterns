@@ -19,8 +19,7 @@ module.exports = async function (context, eventHubMessages) {
     for(var i = 0; i < eventHubMessages.length; i++) {
         
         // pick up device id from system properties
-        var deviceid = context.bindingData.systemPropertiesArray[i]["iothub-connection-device-id"];
-        context.log(deviceid);        
+        var deviceid = context.bindingData.systemPropertiesArray[i]["iothub-connection-device-id"];   
         
         // Update event message with deviceid
         var updatedDeviceDetails = eventHubMessages[i];        

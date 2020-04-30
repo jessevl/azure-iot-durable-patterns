@@ -47,10 +47,10 @@ module.exports = async function (context, parameters, device, measurements, repo
     try {
 
         // Use MQTT transport by default.
-        var TRANSPORT_TYPE = "MQTT";
+        const TRANSPORT_TYPE = "MQTT";
 
         // Get device connection string for MQTT.
-        var client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), MQTT);
+        const client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), MQTT);
 
         // Create message object for IoT Hub.    
         const message = new Device.Message(JSON.stringify(measurements));
@@ -74,7 +74,7 @@ module.exports = async function (context, parameters, device, measurements, repo
         }
         
         if (reportedProperties) {
-            var needsUpdate = false;
+            let needsUpdate = false;
 
             for(var key in reportedProperties){
                 if (reportedProperties[key] != twin.properties.reported[key]){
@@ -91,7 +91,7 @@ module.exports = async function (context, parameters, device, measurements, repo
         }
 
         if (desiredProperties) {
-            var needsUpdate = false;
+            let needsUpdate = false;
 
             for(var key in desiredProperties){
                 if (desiredProperties[key] != twin.properties.desired[key]){
@@ -109,7 +109,7 @@ module.exports = async function (context, parameters, device, measurements, repo
             if (needsUpdate) {
                 context.log('[%s] Twin (desired) needs update ', "clientSDK",device.deviceId);
 
-                var registry = iothub.Registry.fromConnectionString(parameters.clientConnectionString);
+                const registry = iothub.Registry.fromConnectionString(parameters.clientConnectionString);
 
                 context.log('[%s] Get twin (desired)', "clientSDK",device.deviceId);
                 registry.getTwin(device.deviceId, function(err, twin){

@@ -8,7 +8,7 @@
 
 const azure = require('azure-storage');
 
-var blobService = azure.createBlobService(process.env["StorageConnection"]);
+const blobService = azure.createBlobService(process.env["StorageConnection"]);
 const path = process.env["zoneDefinitionPath"].split("/");
 const container = path[0];
 const file = path[1];

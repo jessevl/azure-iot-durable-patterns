@@ -8,6 +8,6 @@ module.exports = df.orchestrator(function*(context) {
 
         return output;
     } catch (error) {
-        // Error handling or compensation goes here.
+        context.log("Error from orchestrator:"+error);
     }
 });

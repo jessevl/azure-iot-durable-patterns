@@ -1,4 +1,7 @@
 ﻿module.exports = async function (context) {
+
+    context.log("Enriching msg with zone status");
+
     let msg = context.bindings.msg;
 
     if (msg) {

@@ -1,7 +1,11 @@
 ﻿const df = require("durable-functions");
 
 module.exports = async function (context, ehmsg) {
-    context.log("Orchestration Function v0.5. "+JSON.stringify(ehmsg));
+    
+    //
+    // The below object maps all values of the incoming message to a message that will be sent into IoT Hub.
+    // This specific object is just a sample object that fits a certain Lora device, edit it to fit your device message.
+    //
 
         var msg = {
                     device:{
@@ -28,7 +32,7 @@ module.exports = async function (context, ehmsg) {
                     desiredProperties:{
                         
                     }
-                }
+                };
 
                 
 

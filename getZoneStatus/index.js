@@ -13,7 +13,6 @@
 
 
 const azure = require('azure-storage');
-
 const tableService = azure.createTableService(process.env["StorageConnection"]);
 const partitionKey = process.env["zoneStatusPartition"];
 const tableName = "zones";
@@ -22,11 +21,11 @@ module.exports = function (context, req) {
     context.log('Start Zones Read');
 
         // return the top x items
-        var query = new azure.TableQuery().top(1000).where('PartitionKey eq ?', partitionKey);
+        const query = new azure.TableQuery().top(1000).where('PartitionKey eq ?', partitionKey);
         tableService.queryEntities(tableName, query, null, function (error, result, response) {
             if(!error){
                 
-                var res = [];
+                let res = [];
 
                 response.body.value.forEach(zone => {
                     res.push({

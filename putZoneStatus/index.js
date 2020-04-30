@@ -35,7 +35,7 @@ module.exports = function (context, req) {
                         // Set the broadcaster device.
                         context.log('[%s] Twin (desired) needs update ', "clientSDK","broadcast");
         
-                        var registry = iothub.Registry.fromConnectionString(process.env["uplinkClientConnectionString"]);
+                        const registry = iothub.Registry.fromConnectionString(process.env["uplinkClientConnectionString"]);
         
                         context.log('[%s] Get twin (desired)', "clientSDK","broadcast");
                         registry.getTwin("broadcast", function(err, twin){
@@ -61,7 +61,7 @@ module.exports = function (context, req) {
                             }
                         });
                     } else {
-                        var query = new azure.TableQuery().top(1000).where("PartitionKey eq ? and Distress gt 1",partitionKey);
+                        let query = new azure.TableQuery().top(1000).where("PartitionKey eq ? and Distress gt 1",partitionKey);
                         tableService.queryEntities(tableName, query, null, function (error, result, response) {
                             if(!error){
                                 console.log(response.body.value);
@@ -71,7 +71,7 @@ module.exports = function (context, req) {
                                     // Set the broadcaster device.
                                         context.log('[%s] Twin (desired) needs update ', "clientSDK","broadcast");
                         
-                                        var registry = iothub.Registry.fromConnectionString(process.env["uplinkClientConnectionString"]);
+                                        const registry = iothub.Registry.fromConnectionString(process.env["uplinkClientConnectionString"]);
                         
                                         context.log('[%s] Get twin (desired)', "clientSDK","broadcast");
                                         registry.getTwin("broadcast", function(err, twin){
