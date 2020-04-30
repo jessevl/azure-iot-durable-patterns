@@ -17,17 +17,17 @@ module.exports = async function (context, eventHubMessages) {
 
     // Start Message processing
     for(var i = 0; i < eventHubMessages.length; i++) {
-        
-        // pick up device id from system properties
-        var deviceid = context.bindingData.systemPropertiesArray[i]["iothub-connection-device-id"];   
-        
-        // Update event message with deviceid
-        var updatedDeviceDetails = eventHubMessages[i];        
-        updatedDeviceDetails["id"] = deviceid;
-        updatedDeviceDetails["deviceid"] = deviceid;          
+    
+            // pick up device id from system properties
+            var deviceid = context.bindingData.systemPropertiesArray[i]["iothub-connection-device-id"];   
+            
+            // Update event message with deviceid
+            var updatedDeviceDetails = eventHubMessages[i];        
+            updatedDeviceDetails["id"] = deviceid;
+            updatedDeviceDetails["deviceId"] = deviceid;          
 
-        await container.items.upsert(updatedDeviceDetails, partitionKey);
-
+            await container.items.upsert(updatedDeviceDetails, partitionKey);
+        
     }
 };
 

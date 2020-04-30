@@ -1,6 +1,6 @@
 ﻿module.exports = async function (context) {
 
-    context.log("Enriching msg with zone status");
+    context.log("[v0.3] Enriching msg with zone status");
 
     let msg = context.bindings.msg;
 
@@ -10,7 +10,7 @@
 
         // TODO: implement highest distress level picking
         msg.measurements.zones.forEach(zone => {
-            var status = zonestatus.find(o => o.RowKey === zone);
+            var status = zonestatus.find(o => o.RowKey == zone);
             msg.desiredProperties["distress"] = status.Distress;
         })
 

@@ -13,7 +13,7 @@
         let matchedZones = [];
 
         zones.forEach(zone => {
-            if (geolib.isPointInPolygon(loc,zone.geometry.coordinates) == true){
+            if (geolib.isPointInPolygon(loc,zone.geometry.coordinates[0]) == true){
                 matchedZones.push(zone.properties.id);
                 context.log(zone.properties.id)
             }
