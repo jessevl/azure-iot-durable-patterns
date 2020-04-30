@@ -39,7 +39,7 @@ module.exports = async function (context, ehmsg) {
     const client = df.getClient(context);
     const instanceId = await client.startNew("ProcessMessage", undefined, msg);
 
-    context.log(`Started orchestration with ID = '${instanceId}'.`);
+    context.log(`[v0.7] Started orchestration with ID = '${instanceId}'.`);
 
     return client.createCheckStatusResponse(context.bindingData.req, instanceId);
 };
