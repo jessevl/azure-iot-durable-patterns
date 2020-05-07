@@ -2,7 +2,7 @@
   "bindings": [
     {
       "type": "eventHubTrigger",
-      "name": "eventHubMessages",
+      "name": "myEventHubMessage",
       "direction": "in",
       "eventHubName": "twinchanges",
       "connection": "EventHubIngestConnectionstring",

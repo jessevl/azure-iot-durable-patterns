@@ -1,4 +1,4 @@
-module.exports = async function (context, eventHubMessages) {    
+module.exports = async function (context, myEventHubMessage) {    
 
     // Define and create Cosmos DB Client
     const endpoint = process.env["tripletDBendpoint"];
