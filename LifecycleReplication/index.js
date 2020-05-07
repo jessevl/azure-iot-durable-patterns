@@ -28,7 +28,7 @@ module.exports = async function (context, myEventHubMessage) {
         var updatedDeviceDetails = myEventHubMessage[i]; 
         updatedDeviceDetails["id"] = deviceid;       
         updatedDeviceDetails["deviceid"] = deviceid;  
-        const { id, deviceId } = updatedDeviceDetails;
+        updatedDeviceDetails["eventType"] = eventType;
 
         // Create or delete device triplet 
         if (eventType === "deleteDeviceIdentity") {
