@@ -26,7 +26,8 @@ The solution contains the following functions:
 * **EnrichZoneStatus**: checks the matched zone (names) against an Azure Table (partition) to see what the status of the matched zones are, the result is added as 'distress' property in the message. The table rows should have a partitionkey (this is the same for all entries), rowkey (the unique identifier of the zone), and a 'Distress' property with an integer. 
 * **UplinkBridge**: finally the message is forwarded to an IoT Hub with device-specific credentials (the function will retrieve/create those). *Be aware that in product scenarios it is strongly advised to cache the connection strings.*
 * **Downlink**: Once a device twin is changed (most likely due to the 'distress' state changing), this will trigger an event with the updated twin to be put onto the event hub, which this functions will pick up. The function will forward this to the downlink service of the specific Lora provider on a HTTPS endpoint defined in app settings.
-* **TwinReplication**: Since the IoT Hub imposes throttling limits on reading the device twins, we replicate the twins to a Cosmos DB container. This function is fed by the same event hub with twin change events as the above Downlink function.
+* **TwinReplication**: Since the IoT Hub imposes throttling limits on reading the device twins, we replicate the twins to a Cosmos DB container. Once a device twin is updated in IoT Hub, the message routing feature for twin change events in IoT Hub sends an event to an Event Hub, which then triggers this function to update the twin in a Cosmos DB container. This function is fed by the same Event Hub with twin change events as the above Downlink function. 
+* **LifecycleReplication**: Similar to the TwinReplication function, the message routing feature in IoT Hub is used for lifecycle events, sending an event to Event Hub when a device is deleted or created, triggering this function to replicate that operation on the device twin in the Cosmos DB container.
 
 And for the APIs:
 * **getZones**: This function provides an API endpoint for GETting the entire GeoJSON with zone definitions.
@@ -45,7 +46,7 @@ You will need to set the following app settings (or local.settings.json when tes
     "zoneDefinitionPath": "folder/file.json",
     "zoneStatusPartition":"name-of-partition"
     "uplinkClientConnectionString": "A managenement key for the IoT Hub",
-    "EventHubIngestConnectionstring": "Connection string for all the event hubs",
+    "EventHubIngestConnectionstring": "Connection string for the event hub",
     "tripletDBendpoint":"Cosmos DB endpoint for the Device Twin DB",
     "tripletDBkey": "Key for the Device Twin DB",
     "tripletDBname": "Name of the Device Twin Database",

@@ -4,7 +4,7 @@
       "type": "eventHubTrigger",
       "name": "myEventHubMessage",
       "direction": "in",
-      "eventHubName": "twinchanges",
+      "eventHubName": "lifecyclechanges",
       "connection": "EventHubIngestConnectionstring",
       "cardinality": "many",
       "consumerGroup": "devicetriplet"
