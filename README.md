@@ -46,8 +46,7 @@ You will need to set the following app settings (or local.settings.json when tes
     "zoneDefinitionPath": "folder/file.json",
     "zoneStatusPartition":"name-of-partition"
     "uplinkClientConnectionString": "A managenement key for the IoT Hub",
-    "EventHubIngestConnectionstring": "Connection string for the twin changes event hub",
-    "LifeCycleEventHubIngestConnectionstring": "Connection string for the lifecycle changes event hub",
+    "EventHubIngestConnectionstring": "Connection string for the event hub",
     "tripletDBendpoint":"Cosmos DB endpoint for the Device Twin DB",
     "tripletDBkey": "Key for the Device Twin DB",
     "tripletDBname": "Name of the Device Twin Database",

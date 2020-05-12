@@ -5,7 +5,7 @@
       "name": "myEventHubMessage",
       "direction": "in",
       "eventHubName": "lifecyclechanges",
-      "connection": "LifeCycleEventHubIngestConnectionstring",
+      "connection": "EventHubIngestConnectionstring",
       "cardinality": "many",
       "consumerGroup": "devicetriplet"
     }
