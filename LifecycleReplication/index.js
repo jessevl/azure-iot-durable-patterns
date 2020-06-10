@@ -33,7 +33,7 @@ module.exports = async function (context, myEventHubMessage) {
         // Create or delete device triplet 
         if (eventType === "deleteDeviceIdentity") {
 
-            container.item(id, deviceId).delete();
+            container.item(deviceid, deviceid).delete();
             context.log("Deleted device " + deviceid + " from CosmosDB")
 
         } else if(eventType === "createDeviceIdentity") {
