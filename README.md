@@ -10,6 +10,10 @@ This document will describe a sample scenario and architecture for this pattern.
 
 **Disclaimer: this code sample shows a pattern, it does not implement all (code) best practices regarding security, validation, testing, etc.**
 
+> Also be aware of the following (known) limitations of this sample:
+> 1. Cosmos DB does not currently support partial updates, therefore the twin replication fucntion might insert outdated twin data when multiple functions run in parallel.
+> 2. The bridge function sets up a new MQTT or AMQP connection to the IoT Hub for every message. A large number of simultaneous connections can lead to unexpected behaviour and dropped messages due to a concurrency limit on the IoT Hub side.
+
 ## Scenario: Ingesting and enriching messages from a third party solution into IoT Hub.
 ![Architecture](/assets/architecture.png "Architecture")
 
