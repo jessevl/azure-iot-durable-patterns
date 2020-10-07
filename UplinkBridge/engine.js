@@ -4,8 +4,7 @@
  */
 
 const crypto = require('crypto');
-const Device = require('azure-iot-device');
-const MQTT = require('azure-iot-device-mqtt').Mqtt;
+const axios = require('axios');
 const iothub = require('azure-iothub');
 var ProvisioningTransport = require('azure-iot-provisioning-device-mqtt').Mqtt;
 var SymmetricKeySecurityClient = require('azure-iot-security-symmetric-key').SymmetricKeySecurityClient;
@@ -18,7 +17,7 @@ const deviceCache = {};
 /**
  * Forwards external telemetry messages for IoT Hub devices.
  * @param {{ context: Object }} context
- * @param {{ idScope: string, sasToken: string, registrationHost: string }} parameters
+ * @param {{ idScope: string, sasToken: string, registrationHost: string, gatewayHost: string }} parameters
  * @param {{ deviceId: string }} device 
  * @param {{ [field: string]: number }} measurements 
  * @param {{ [field: string]: Object }} reportedProperties 
@@ -38,7 +37,7 @@ module.exports = async function (context, parameters, device, measurements, repo
         throw new StatusError('Invalid format: invalid measurement list.', 400);
     }
 
-    // TODO validate properties
+    // TODO: validate properties
 
     if (timestamp && isNaN(Date.parse(timestamp))) {
         throw new StatusError('Invalid format: if present, timestamp must be in ISO format (e.g., YYYY-MM-DDTHH:mm:ss.sssZ)', 400);
@@ -46,72 +45,96 @@ module.exports = async function (context, parameters, device, measurements, repo
 
     try {
 
-        // Use MQTT transport by default.
-        const TRANSPORT_TYPE = "MQTT";
+        //
+        // STEP 1: Grab device key from cache or grab new one from DPS.
+        //
 
-        // Get device connection string for MQTT.
-        const client = Device.Client.fromConnectionString(await getDeviceConnectionString(parameters, device), MQTT);
-
-        // Create message object for IoT Hub.    
-        const message = new Device.Message(JSON.stringify(measurements));
-
-        // Include custom timestamp if there is one (IoT Hub will use this).
-        if (timestamp) {
-            message.properties.add('iothub-creation-time-utc', timestamp);
+        if (deviceCache[device.deviceId] && deviceCache[device.deviceId].deviceKey) {
+            context.log("Device (key) is in cache")
+            
+        } else {
+            context.log("Device (key) is not in cache")
+            var deviceRegistration = await getDeviceRegistration(parameters, device);
+            // Grab new key
+            deviceCache[device.deviceId] = {
+                ...deviceCache[device.deviceId],
+                deviceKey: deviceRegistration.deviceKey,
+                registrationResult: deviceRegistration.registrationResult
+            }
+            
         }
-
-        // Create IoT Hub client.
-        await client.open();
-
-        context.log('[%s] Get twin', TRANSPORT_TYPE,device.deviceId);
-        const twin = await client.getTwin();
-        context.log('[%s] Obtained twin for device ', TRANSPORT_TYPE,device.deviceId);
-
+        
+       
+        //
+        // STEP 2: Send telemetry/measurements on behalf of device.
+        //
+        
         if(measurements) {
-            context.log('[%s] Sending telemetry for device ', TRANSPORT_TYPE, device.deviceId);
-            await client.sendEvent(message);
-            context.log('[%s] Telemetry sent for ', TRANSPORT_TYPE,device.deviceId);
+            context.log('Sending telemetry for device'+ device.deviceId);
+            await sendTelemetry(deviceCache[device.deviceId], measurements);
+            context.log('Telemetry sent for'+ device.deviceId);
         }
+
+        //
+        // STEP 3: If reported properties or desired properties in msg: 
+        // grab twin from IoT Hub.
+        //
+
+        let deviceTwin = {};
+
+        if (reportedProperties || desiredProperties){
+         
+          
+            deviceTwin = await getDeviceTwin(deviceCache[device.deviceId]);
+            
+        }
+                
+        //
+        // STEP 4: If there are reported properties in incoming msg, 
+        // check if it is different from current & update reported if needed 
+        // as well as save the new device twin to cache.
+        //
         
         if (reportedProperties) {
             let needsUpdate = false;
-
+            
             for(var key in reportedProperties){
-                if (reportedProperties[key] != twin.properties.reported[key]){
+                if (reportedProperties[key] != deviceTwin.properties.reported[key]){
                     needsUpdate = true;
                 }
             }
 
             if (needsUpdate) {
-                await twin.properties.reported.update(reportedProperties);
-                context.log('[%s] Updated twin (reported) for device ', TRANSPORT_TYPE,device.deviceId);
+                await sendReported(deviceCache[device.deviceId], reportedProperties);
+                context.log('Updated twin (reported) for device '+device.deviceId);
+                
             } else {
-                context.log('[%s] Twin (reported) is already up to date ', TRANSPORT_TYPE,device.deviceId);
+                context.log('Twin (reported) is already up to date '+device.deviceId);
             }
         }
+
+        //
+        // STEP 5: If there are desired properties in incoming msg, 
+        // check if it is different from current & update reported if needed 
+        // as well as save the new device twin to cache.
+        //
 
         if (desiredProperties) {
             let needsUpdate = false;
 
             for(var key in desiredProperties){
-                if (desiredProperties[key] != twin.properties.desired[key]){
+                if (desiredProperties[key] != deviceTwin.properties.desired[key]){
                     needsUpdate = true;
-                }
-            }
-            
-            for(var key in desiredProperties){
-                if (desiredProperties[key] != reportedProperties[key]){
-                    needsUpdate = true;
-                    console.log("A desired property was not yet reported back, we'll re-set the desired twin (to trigger a new change event)");
                 }
             }
 
+
             if (needsUpdate) {
-                context.log('[%s] Twin (desired) needs update ', "clientSDK",device.deviceId);
+                context.log('Twin (desired) needs update '+ device.deviceId);
 
                 const registry = iothub.Registry.fromConnectionString(parameters.clientConnectionString);
 
-                context.log('[%s] Get twin (desired)', "clientSDK",device.deviceId);
+                context.log('Get twin (desired) '+device.deviceId);
                 registry.getTwin(device.deviceId, function(err, twin){
                     if (err) {
                         context.log(err.constructor.name + ': ' + err.message);
@@ -121,35 +144,32 @@ module.exports = async function (context, parameters, device, measurements, repo
                                 desired: desiredProperties
                             }
                         };
-                        context.log('[%s] Obtained twin (desired) for device ', "clientSDK",device.deviceId);
+                        context.log('Obtained twin (desired) for device '+device.deviceId);
 
                         twin.update(patch, function(err) {
                             if (err) {
                             context.log('Could not update twin (desired): ' + err.constructor.name + ': ' + err.message);
                             } else {
-                            context.log('[%s] Updated twin (desired) for device ', "clientSDK",device.deviceId);
+                            context.log('Updated twin (desired) for device ' + device.deviceId);
                             }
                         });
                     }
-                });
+                   });
+                   
             } else {
-                context.log('[%s] Twin (desired) already up to date ', "MQTT",device.deviceId);
+                context.log('Twin (desired) already up to date '+device.deviceId);
             }
         }
-
-        context.log('[%s] Closing client for ', TRANSPORT_TYPE,device.deviceId);
-        await client.close();
-        context.log('[%s] Client closed for ', TRANSPORT_TYPE,device.deviceId);
    
     } catch (e) {
         // If the device was deleted, we remove its cached connection string
         if (e.name === 'DeviceNotFoundError' && deviceCache[device.deviceId]) {
             delete deviceCache[device.deviceId].connectionString;
         }
-
+        context.log(e);
         throw new Error(`Unable to send telemetry for device ${device.deviceId}: ${e.message}`);
     }
-};
+
 
 /**
  * @returns true if measurements object is valid, i.e., a map of field names to numbers or strings.
@@ -183,41 +203,111 @@ function isLocation(measurement) {
     return true;
 }
 
-async function getDeviceConnectionString(parameters, device) {
+/**
+ * @returns deviceKey and registrationResult
+ */
+async function getDeviceRegistration(parameters, device) {
     const deviceId = device.deviceId;
 
-    if (deviceCache[deviceId] && deviceCache[deviceId].connectionString) {
-        return deviceCache[deviceId].connectionString;
-    }
-
-    var symmetricKey = await getDeviceKey(parameters, deviceId);
+    var symmetricKey = getDeviceKey(parameters, deviceId);
     var provisioningSecurityClient = new SymmetricKeySecurityClient(deviceId, symmetricKey);
     var provisioningClient = ProvisioningDeviceClient.create(registrationHost, parameters.idScope, new ProvisioningTransport(), provisioningSecurityClient);
 
-    var registrationResult = await provisioningClient.register();
+    var result = {
+        deviceKey: symmetricKey, 
+        registrationResult: await provisioningClient.register()
+    };
 
-    const connStr = 'HostName=' + registrationResult.assignedHub + ';DeviceId=' + registrationResult.deviceId + ';SharedAccessKey=' + symmetricKey;
-    deviceCache[deviceId].connectionString = connStr;
-    return connStr;
+    return result;
 }
 
 /**
  * Computes a derived device key using the primary key.
  */
-async function getDeviceKey(parameters, deviceId) {
-    if (deviceCache[deviceId] && deviceCache[deviceId].deviceKey) {
-        return deviceCache[deviceId].deviceKey;
-    }
-
+function getDeviceKey(parameters, deviceId) {
     const key = crypto.createHmac('SHA256', Buffer.from(parameters.sasToken, 'base64'))
         .update(deviceId)
         .digest()
         .toString('base64');
 
-    deviceCache[deviceId] = {
-        ...deviceCache[deviceId],
-        deviceId: key
-    } 
-
     return key;
 }
+
+
+function generateDeviceSAS(device) {
+    var resourceUri = device.registrationResult.assignedHub+"/devices/"+device.registrationResult.deviceId;
+    var signingKey = device.deviceKey;
+
+
+    resourceUri = encodeURIComponent(resourceUri);
+
+    // Set expiration in seconds
+    var expires = (Date.now() / 1000) + 60 * 60;
+    expires = Math.ceil(expires);
+    var toSign = resourceUri + '\n' + expires;
+
+    // Use crypto
+    var hmac = crypto.createHmac('sha256', Buffer.from(signingKey, 'base64'));
+    hmac.update(toSign);
+    var base64UriEncoded = encodeURIComponent(hmac.digest('base64'));
+
+    // Construct authorization string
+    var token = "SharedAccessSignature sr=" + resourceUri + "&sig="
+    + base64UriEncoded + "&se=" + expires;
+    
+    return token;
+};
+
+
+/**
+ * Retrieves a twin
+ */
+async function getDeviceTwin(device) {
+    context.log("Getting device twin.");
+    var sas = generateDeviceSAS(device);
+
+    var response = await axios({
+        method: 'get',
+        url: parameters.gatewayHost+device.registrationResult.deviceId+"/twin/",
+        headers: {'sas_token': sas}
+    })
+    
+    return response.data;
+}
+
+/**
+ * Updates reported properties (twin)
+ */
+async function sendReported(device, reported) {
+    context.log("Sending reported properties.");
+    var sas = generateDeviceSAS(device);
+
+    var response = await axios({
+        method: 'post',
+        url: parameters.gatewayHost+device.registrationResult.deviceId+"/properties/",
+        headers: {'sas_token': sas},
+        data: reported
+    })
+    
+    return response.data;
+}
+
+/**
+ * Sends telemetry
+ */
+async function sendTelemetry(device, telemetry) {
+    context.log("Sending telemetry.");
+    var sas = generateDeviceSAS(device);
+
+    var response = await axios({
+        method: 'post',
+        url: parameters.gatewayHost+device.registrationResult.deviceId+"/",
+        headers: {'sas_token': sas},
+        data: telemetry
+    })
+    
+    return response.data;
+}
+
+
+};

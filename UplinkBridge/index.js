@@ -11,7 +11,8 @@
             idScope: process.env.uplinkIdScope,
             sasToken: process.env.uplinkSasToken,
             registrationHost: process.env.uplinkRegistrationHost,
-            clientConnectionString: process.env.uplinkClientConnectionString
+            clientConnectionString: process.env.uplinkClientConnectionString,
+            gatewayHost: process.env.gatewayHost
         };
 
         try {
