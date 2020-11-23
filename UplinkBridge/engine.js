@@ -70,7 +70,7 @@ module.exports = async function (context, parameters, device, measurements, repo
         //
         
         if(measurements) {
-            context.log('Sending telemetry for device'+ device.deviceId);
+            context.log('There is telemetry for device'+ device.deviceId);
             await sendTelemetry(deviceCache[device.deviceId], measurements);
             context.log('Telemetry sent for'+ device.deviceId);
         }
@@ -83,11 +83,9 @@ module.exports = async function (context, parameters, device, measurements, repo
         let deviceTwin = {};
 
         if (reportedProperties || desiredProperties){
-         
-          
             deviceTwin = await getDeviceTwin(deviceCache[device.deviceId]);
             
-        }
+        } 
                 
         //
         // STEP 4: If there are reported properties in incoming msg, 
@@ -98,15 +96,18 @@ module.exports = async function (context, parameters, device, measurements, repo
         if (reportedProperties) {
             let needsUpdate = false;
             
-            for(var key in reportedProperties){
-                if (reportedProperties[key] != deviceTwin.properties.reported[key]){
+            for(let key in reportedProperties){
+                if (reportedProperties[key] != await deviceTwin.properties.reported[key]){
                     needsUpdate = true;
                 }
             }
 
             if (needsUpdate) {
+                context.log('Twin (reported) needs update '+ device.deviceId);
+
                 await sendReported(deviceCache[device.deviceId], reportedProperties);
                 context.log('Updated twin (reported) for device '+device.deviceId);
+                
                 
             } else {
                 context.log('Twin (reported) is already up to date '+device.deviceId);
@@ -122,8 +123,8 @@ module.exports = async function (context, parameters, device, measurements, repo
         if (desiredProperties) {
             let needsUpdate = false;
 
-            for(var key in desiredProperties){
-                if (desiredProperties[key] != deviceTwin.properties.desired[key]){
+            for(let key in desiredProperties){
+                if (desiredProperties[key] != await deviceTwin.properties.desired[key]){
                     needsUpdate = true;
                 }
             }
@@ -135,32 +136,28 @@ module.exports = async function (context, parameters, device, measurements, repo
                 const registry = iothub.Registry.fromConnectionString(parameters.clientConnectionString);
 
                 context.log('Get twin (desired) '+device.deviceId);
-                registry.getTwin(device.deviceId, function(err, twin){
-                    if (err) {
-                        context.log(err.constructor.name + ': ' + err.message);
-                    } else {
-                        var patch = {
-                            properties: {
-                                desired: desiredProperties
-                            }
-                        };
-                        context.log('Obtained twin (desired) for device '+device.deviceId);
-
-                        twin.update(patch, function(err) {
-                            if (err) {
-                            context.log('Could not update twin (desired): ' + err.constructor.name + ': ' + err.message);
-                            } else {
-                            context.log('Updated twin (desired) for device ' + device.deviceId);
-                            }
-                        });
+                
+                let twin = await (await registry.getTwin(device.deviceId)).responseBody;
+       
+                var patch = {
+                    properties: {
+                        desired: desiredProperties
                     }
-                   });
-                   
+                };
+                context.log('Obtained twin (desired) for device '+device.deviceId);
+
+                let twinUpdate = await registry.updateTwin(twin.deviceId, patch, twin.etag);
+
+                context.log('Updated twin (desired) for device ' + device.deviceId);
+
+                
+         
             } else {
                 context.log('Twin (desired) already up to date '+device.deviceId);
             }
         }
    
+    
     } catch (e) {
         // If the device was deleted, we remove its cached connection string
         if (e.name === 'DeviceNotFoundError' && deviceCache[device.deviceId]) {
@@ -168,8 +165,7 @@ module.exports = async function (context, parameters, device, measurements, repo
         }
         context.log(e);
         throw new Error(`Unable to send telemetry for device ${device.deviceId}: ${e.message}`);
-    }
-
+    } 
 
 /**
  * @returns true if measurements object is valid, i.e., a map of field names to numbers or strings.
@@ -256,7 +252,7 @@ function generateDeviceSAS(device) {
     + base64UriEncoded + "&se=" + expires;
     
     return token;
-};
+}
 
 
 /**
